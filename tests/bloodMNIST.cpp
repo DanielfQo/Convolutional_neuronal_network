@@ -84,7 +84,6 @@ bool loadBloodMNIST(const std::string& filepath, std::vector<Tensor>& x_data, st
     return true;
 }
 
-// Helper to get sum/mean of GPU memory
 float gpuMean(const float* d_ptr, int size) {
     std::vector<float> h(size);
     cudaMemcpy(h.data(), d_ptr, size * sizeof(float), cudaMemcpyDeviceToHost);
@@ -93,50 +92,82 @@ float gpuMean(const float* d_ptr, int size) {
     return static_cast<float>(sum / size);
 }
 
+float computeAccuracy(Network& net, const std::vector<Tensor>& x_data, const std::vector<Tensor>& y_data) {
+    int correct = 0;
+    int total = static_cast<int>(x_data.size());
+    for (int i = 0; i < total; ++i) {
+        Tensor pred = net.predict(x_data[i]);
+        const float* pred_ptr = pred.cpu();
+        const float* label_ptr = y_data[i].cpu();
+        int pred_class = 0;
+        int label_class = 0;
+        for (int c = 1; c < 8; ++c) {
+            if (pred_ptr[c] > pred_ptr[pred_class]) pred_class = c;
+            if (label_ptr[c] > label_ptr[label_class]) label_class = c;
+        }
+        if (pred_class == label_class) {
+            correct++;
+        }
+    }
+    return static_cast<float>(correct) / total * 100.0f;
+}
+
 int main() {
     initCuda();
     registerAll();
 
-    std::vector<Tensor> x_train, y_train;
-    if (!loadBloodMNIST("data/bloodmnist_train.bin", x_train, y_train)) {
-        return 1;
+    {
+        // Cargar datos de BloodMNIST
+        std::vector<Tensor> x_train, y_train;
+        std::vector<Tensor> x_val, y_val;
+        std::vector<Tensor> x_test, y_test;
+
+        if (!loadBloodMNIST("data/bloodmnist_train.bin", x_train, y_train) ||
+            !loadBloodMNIST("data/bloodmnist_val.bin", x_val, y_val) ||
+            !loadBloodMNIST("data/bloodmnist_test.bin", x_test, y_test)) {
+            std::cerr << "Error cargando los datos de BloodMNIST." << std::endl;
+            cleanupCuda();
+            return 1;
+        }
+
+
+        auto& af = ActivationFactory::instance();
+        auto& lf = LossFactory::instance();
+
+        Network net;
+        net.setBatchSize(64);
+
+        net.setLoss(lf.create("cross_entropy"));
+
+        
+        net.addLayer(std::make_unique<ConvLayer>(3,  8, 3, 1, 1, af.create("relu")));
+        net.addLayer(std::make_unique<PoolLayer>(2, 2, PoolType::MAX));
+        net.addLayer(std::make_unique<ConvLayer>(8, 16, 3, 1, 1, af.create("relu")));
+        net.addLayer(std::make_unique<PoolLayer>(2, 2, PoolType::MAX));
+        net.addLayer(std::make_unique<FCLayer>(16 * 7 * 7, 120, af.create("relu")));
+        net.addLayer(std::make_unique<FCLayer>(120, 84, af.create("sigmoid")));
+        net.addLayer(std::make_unique<FCLayer>(84, 8, af.create("softmax")));
+
+        net.summary();
+
+
+        std::cout << "\nIniciando entrenamiento..." << std::endl;
+        auto start_time = std::chrono::high_resolution_clock::now();
+        net.train(x_train, y_train, 30, 0.002f);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> diff = end_time - start_time;
+        std::cout << "Tiempo de entrenamiento: " << diff.count() << " s\n" << std::endl;
+
+        // Calcular precisión
+        std::cout << "Evaluando precision en los conjuntos de datos..." << std::endl;
+        float val_acc = computeAccuracy(net, x_val, y_val);
+        float test_acc = computeAccuracy(net, x_test, y_test);
+        std::cout << "Precision Validacion: " << val_acc << " %" << std::endl;
+        std::cout << "Precision Test:       " << test_acc << " %" << std::endl;
+
+        // Guardar modelo entrenado
+        net.save("bloodmnist_lenet.bin");
     }
-
-    auto& af = ActivationFactory::instance();
-    auto& lf = LossFactory::instance();
-
-    Network net;
-    net.setBatchSize(64);
-    net.setLoss(lf.create("cross_entropy"));
-
-    net.addLayer(std::make_unique<ConvLayer>(3,  6, 5, 1, 0, af.create("relu")));
-    net.addLayer(std::make_unique<PoolLayer>(2, 2, PoolType::MAX));
-    net.addLayer(std::make_unique<ConvLayer>(6, 16, 5, 1, 0, af.create("relu")));
-    net.addLayer(std::make_unique<PoolLayer>(2, 2, PoolType::MAX));
-    net.addLayer(std::make_unique<FCLayer>(16 * 4 * 4, 120, af.create("relu")));
-    net.addLayer(std::make_unique<FCLayer>(120, 84, af.create("sigmoid")));
-    net.addLayer(std::make_unique<FCLayer>(84, 8, af.create("softmax")));
-
-    std::cout << "--- Primer lote (Forward Pass Debug) ---" << std::endl;
-    Tensor batch_x(64, 3, 28, 28);
-    for (int b = 0; b < 64; ++b) {
-        cudaMemcpy(batch_x.gpu() + b * 3 * 28 * 28, x_train[b].gpu(), x_train[b].bytes(), cudaMemcpyDeviceToDevice);
-    }
-
-    std::cout << "Input mean: " << gpuMean(batch_x.gpu(), batch_x.size()) << std::endl;
-
-    Tensor current = batch_x.clone();
-    // Manual forward to inspect intermediate layers
-    // Conv 1
-    current = net.predict(current); // Wait, net.predict(batch_x) runs the whole forward. Let's inspect weights and outputs of the network
-    std::cout << "Final network output mean: " << gpuMean(current.gpu(), current.size()) << std::endl;
-    
-    // Print first 8 elements
-    std::vector<float> h_out(8);
-    cudaMemcpy(h_out.data(), current.gpu(), 8 * sizeof(float), cudaMemcpyDeviceToHost);
-    std::cout << "First sample predictions: ";
-    for (float v : h_out) std::cout << v << " ";
-    std::cout << std::endl;
 
     cleanupCuda();
     return 0;

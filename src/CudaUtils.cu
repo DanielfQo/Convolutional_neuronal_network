@@ -22,7 +22,7 @@ void initCuda()
 void cleanupCuda()
 {
     CUDA_CHECK(cudaDeviceReset());
-    printf("[CUDA] Dispositivo reiniciado — recursos liberados.\n");
+    printf("[CUDA] Dispositivo reiniciado \n");
 }
 
 // Imprime informacion del hardware CUDA disponible

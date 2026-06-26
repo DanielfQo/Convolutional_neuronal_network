@@ -214,8 +214,8 @@ Tensor ConvLayer::forward(const Tensor& input) {
     CUDA_CHECK(cudaGetLastError());
 
     if (activation_) {
-        output_cache_ = output.clone();
         activation_->forward(output.gpu(), N, output.size());
+        output_cache_ = output.clone();
     }
 
     return output;

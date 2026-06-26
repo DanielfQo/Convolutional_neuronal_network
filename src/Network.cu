@@ -130,6 +130,7 @@ void Network::train(const std::vector<Tensor>& data,
 
         printf("Epoch %3d/%d - loss: %.6f\n",
                epoch + 1, epochs, epoch_loss / num_batches);
+        fflush(stdout);
     }
 }
 

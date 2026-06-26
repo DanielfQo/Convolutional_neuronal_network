@@ -46,7 +46,5 @@ void Softmax::forward(float* d_inout, int N, int total){
 }
 
 void Softmax::backward(float* d_grad, const float* d_fwd_output, int N, int total){
-    int feature_size = total / N;
-    softmax_backward_kernel<<<gridSize(N), BLOCK_SIZE>>>(d_grad, d_fwd_output, N, feature_size);
-    CUDA_CHECK(cudaGetLastError());
+    // Se deja como identidad porque se asume la combinación estable con CrossEntropyLoss (pred - label)
 }
