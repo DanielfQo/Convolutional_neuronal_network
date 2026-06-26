@@ -1,0 +1,52 @@
+# Build directory
+build/
+bin/
+lib/
+x64/
+
+# Visual Studio / CMake files
+.vs/
+out/
+CMakeFiles/
+CMakeSettings.json
+CMakeUserPresets.json
+compiler-id-c.c
+compiler-id-cpp.cpp
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+*.user
+
+# Ninja build files
+.ninja_deps
+.ninja_log
+build.ninja
+rules.ninja
+
+# Compiled binaries and libraries
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Project-specific / data files (e.g. model weights)
+*.bin
+*.model
+*.onnx
+*.pt
+*.pth
+*.dat

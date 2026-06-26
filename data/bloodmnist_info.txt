@@ -1,0 +1,20 @@
+=== BloodMNIST Dataset Info ===
+
+Descripción   : The BloodMNIST is based on a dataset of individual normal cells, captured from individuals without infection, hematologic or oncologic disease and free of any pharmacologic treatment at the moment of blood collection. It contains a total of 17,092 images and is organized into 8 classes. We split the source dataset with a ratio of 7:1:2 into training, validation and test set. The source images with resolution 3×360×363 pixels are center-cropped into 3×200×200, and then resized into 3×28×28.
+Num. clases   : 8
+Tamaño imagen : 28 × 28 × 3 (RGB)
+
+Clases:
+  0: basophil
+  1: eosinophil
+  2: erythroblast
+  3: ig
+  4: lymphocyte
+  5: monocyte
+  6: neutrophil
+  7: platelet
+
+Formato binario (.bin):
+  Header: [nSamples(i32), width(i32), height(i32), channels(i32)]
+  Por muestra: [label(i32), píxeles(f32 × C×H×W)]
+  Píxeles normalizados [0,1], layout channel-first (C,H,W)
