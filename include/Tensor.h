@@ -5,8 +5,8 @@
 #include <cstring> 
 
 /*
- *Clase Tensor en 4D (N, C, H, W) para almacenar y gestionar datos en GPU y CPU.
-*/
+ * Clase Tensor en 4D (N, C, H, W) para almacenar y gestionar datos en GPU y CPU.
+ */
 class Tensor {
 public:
     
@@ -41,7 +41,7 @@ public:
     /// Retorna el puntero de solo lectura a los datos en CPU, sincronizandolos primero.
     const float* cpu() const;
 
-    int N() const { return N_; } ///< Tamaño del lote (Batch size).
+    int N() const { return N_; } ///< Tamano del lote (Batch size).
     int C() const { return C_; } ///< Cantidad de canales (Channels).
     int H() const { return H_; } ///< Alto (Height).
     int W() const { return W_; } ///< Ancho (Width).
@@ -49,13 +49,12 @@ public:
     /// Retorna el numero total de elementos flotantes en el tensor (N * C * H * W).
     int size() const { return N_ * C_ * H_ * W_; }
 
-    /// Retorna el tamaño del tensor expresado en bytes.
+    /// Retorna el tamano del tensor expresado en bytes.
     size_t bytes() const { return static_cast<size_t>(size()) * sizeof(float); }
     
     /// Indica si el tensor no tiene memoria reservada en GPU.
     bool empty() const { return d_data_ == nullptr; }
 
-    
     /// Llena el tensor con ceros en la GPU.
     void zeros();
     
